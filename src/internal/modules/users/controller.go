@@ -1,6 +1,8 @@
 package users
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tomatoCoderq/avito_task/src/models"
 	"gorm.io/gorm"
@@ -39,7 +41,7 @@ func (c *Controller) SetIsActive(ctx *gin.Context) {
 	}
 
 	user, err := c.service.SetIsActive(req.UserID, req.IsActive)
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(404, gin.H{
 			"error": gin.H{
 				"code":    "NOT_FOUND",
@@ -110,7 +112,7 @@ func (c *Controller) GetReview(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, gin.H{
-		"user_id":        userID,
+		"user_id":       userID,
 		"pull_requests": pullRequests,
 	})
 }

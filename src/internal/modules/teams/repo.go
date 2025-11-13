@@ -54,3 +54,28 @@ func (r *Repo) TeamGetByName(name string) (*models.Team, error) {
 	}
 	return &team, nil
 }
+
+func (r *Repo) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
+	// Находим команду
+	var team models.Team
+	if err := r.db.Where("name = ?", teamName).First(&team).Error; err != nil {
+		return nil, err
+	}
+
+	// Создаем или обновляем пользователей
+	if err := r.CreateOrUpdateUsers(users); err != nil {
+		return nil, err
+	}
+
+	// Добавляем пользователей в команду (GORM автоматически избегает дубликатов)
+	if err := r.db.Model(&team).Association("Users").Append(users); err != nil {
+		return nil, err
+	}
+
+	// Загружаем обновленную команду с пользователями
+	if err := r.db.Preload("Users").First(&team, "id = ?", team.ID).Error; err != nil {
+		return nil, err
+	}
+
+	return &team, nil
+}

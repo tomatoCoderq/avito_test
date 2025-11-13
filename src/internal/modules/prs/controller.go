@@ -1,6 +1,7 @@
 package prs
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,7 @@ import (
 
 type ServiceMethods interface {
 	CreatePR(prID, prName, authorID string) (*models.PR, error)
+	GetPRByID(prID string) (*models.PR, error)
 	MergePR(prID string) (*models.PR, error)
 	ReassignReviewer(prID, oldUserID string) (*models.PR, string, error)
 }
@@ -45,7 +47,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 	pr, err := c.service.CreatePR(req.PullRequestID, req.PullRequestName, req.AuthorID)
 	if err != nil {
 		// Автор или команда не найдены
-		if err == gorm.ErrRecordNotFound || strings.Contains(err.Error(), "author has no team") {
+		if errors.Is(err, gorm.ErrRecordNotFound) || strings.Contains(err.Error(), "author has no team") {
 			ctx.JSON(404, gin.H{
 				"error": gin.H{
 					"code":    "NOT_FOUND",
@@ -111,7 +113,7 @@ func (c *Controller) Merge(ctx *gin.Context) {
 	}
 
 	pr, err := c.service.MergePR(req.PullRequestID)
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(404, gin.H{
 			"error": gin.H{
 				"code":    "NOT_FOUND",
@@ -151,7 +153,7 @@ func (c *Controller) Merge(ctx *gin.Context) {
 func (c *Controller) Reassign(ctx *gin.Context) {
 	var req struct {
 		PullRequestID string `json:"pull_request_id" binding:"required"`
-		OldUserID     string `json:"old_user_id" binding:"required"`
+		OldUserID     string `json:"old_reviewer_id" binding:"required"`
 	}
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -166,7 +168,7 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 
 	pr, replacedBy, err := c.service.ReassignReviewer(req.PullRequestID, req.OldUserID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(404, gin.H{
 				"error": gin.H{
 					"code":    "NOT_FOUND",
@@ -229,5 +231,53 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 			"assigned_reviewers":  reviewerIDs,
 		},
 		"replaced_by": replacedBy,
+	})
+}
+
+// GetByID получает PR по ID с информацией о ревьюверах
+func (c *Controller) GetByID(ctx *gin.Context) {
+	prID := ctx.Query("pull_request_id")
+	if prID == "" {
+		ctx.JSON(400, gin.H{
+			"error": gin.H{
+				"code":    "INVALID_REQUEST",
+				"message": "pull_request_id query parameter is required",
+			},
+		})
+		return
+	}
+
+	pr, err := c.service.GetPRByID(prID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		ctx.JSON(404, gin.H{
+			"error": gin.H{
+				"code":    "NOT_FOUND",
+				"message": "PR not found",
+			},
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(500, gin.H{
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to get PR",
+			},
+		})
+		return
+	}
+
+	// Формируем ответ
+	reviewerIDs := make([]string, 0, len(pr.Reviewers))
+	for _, reviewer := range pr.Reviewers {
+		reviewerIDs = append(reviewerIDs, reviewer.ID)
+	}
+
+	ctx.JSON(200, gin.H{
+		"pull_request_id":    pr.ID,
+		"pull_request_name":  pr.Name,
+		"author_id":          pr.AuthorID,
+		"status":             pr.Status,
+		"assigned_reviewers": reviewerIDs,
 	})
 }

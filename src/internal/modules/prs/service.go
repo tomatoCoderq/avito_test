@@ -26,6 +26,10 @@ func RegisterService(repo RepositoryMethods) *Service {
 	}
 }
 
+func (s *Service) GetPRByID(prID string) (*models.PR, error) {
+	return s.repo.GetPRByID(prID)
+}
+
 func (s *Service) CreatePR(prID, prName, authorID string) (*models.PR, error) {
 	// Получаем автора
 	author, err := s.repo.GetUserByID(authorID)

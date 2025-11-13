@@ -2,3 +2,5 @@ Avito/
 .env
 openapi.json
 makefile
+.vscode/
+.DS_Store

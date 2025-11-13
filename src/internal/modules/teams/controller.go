@@ -1,6 +1,8 @@
 package teams
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/tomatoCoderq/avito_task/src/models"
 	"gorm.io/gorm"
@@ -9,6 +11,7 @@ import (
 type ServiceMethods interface {
 	TeamCreate(team *models.Team) (*models.Team, error)
 	TeamGetByName(name string) (*models.Team, error)
+	AddUsersToTeam(teamName string, users []models.User) (*models.Team, error)
 }
 
 type Controller struct {
@@ -107,7 +110,7 @@ func (c *Controller) TeamGetByName(ctx *gin.Context) {
 	}
 
 	team, err := c.service.TeamGetByName(name)
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(404, gin.H{
 			"error": gin.H{
 				"code":    "NOT_FOUND",
@@ -139,5 +142,75 @@ func (c *Controller) TeamGetByName(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
 		"team_name": team.Name,
 		"members":   members,
+	})
+}
+
+// AddUsers добавляет пользователей в существующую команду
+func (c *Controller) AddUsers(ctx *gin.Context) {
+	var req struct {
+		TeamName string `json:"team_name" binding:"required"`
+		Members  []struct {
+			UserID   string `json:"user_id" binding:"required"`
+			Username string `json:"username" binding:"required"`
+			IsActive bool   `json:"is_active"`
+		} `json:"members" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(400, gin.H{
+			"error": gin.H{
+				"code":    "INVALID_REQUEST",
+				"message": "Invalid request body",
+			},
+		})
+		return
+	}
+
+	// Создаем массив пользователей
+	users := make([]models.User, len(req.Members))
+	for i, member := range req.Members {
+		users[i] = models.User{
+			ID:       member.UserID,
+			Name:     member.Username,
+			IsActive: member.IsActive,
+		}
+	}
+
+	updatedTeam, err := c.service.AddUsersToTeam(req.TeamName, users)
+	if err != nil {
+		// Команда не найдена
+		if err.Error() == "team not found" || errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(404, gin.H{
+				"error": gin.H{
+					"code":    "NOT_FOUND",
+					"message": "team not found",
+				},
+			})
+			return
+		}
+		ctx.JSON(500, gin.H{
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to add users to team",
+			},
+		})
+		return
+	}
+
+	// Формируем ответ согласно OpenAPI
+	members := make([]gin.H, len(updatedTeam.Users))
+	for i, user := range updatedTeam.Users {
+		members[i] = gin.H{
+			"user_id":   user.ID,
+			"username":  user.Name,
+			"is_active": user.IsActive,
+		}
+	}
+
+	ctx.JSON(200, gin.H{
+		"team": gin.H{
+			"team_name": updatedTeam.Name,
+			"members":   members,
+		},
 	})
 }

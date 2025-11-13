@@ -11,6 +11,7 @@ type RepositoryMethods interface {
 	TeamGetByName(name string) (*models.Team, error)
 	TeamExists(name string) (bool, error)
 	CreateOrUpdateUsers(users []models.User) error
+	AddUsersToTeam(teamName string, users []models.User) (*models.Team, error)
 }
 
 type Service struct {
@@ -44,4 +45,17 @@ func (s *Service) TeamCreate(team *models.Team) (*models.Team, error) {
 func (s *Service) TeamGetByName(name string) (*models.Team, error) {
 	result, err := s.repo.TeamGetByName(name)
 	return result, err
+}
+
+func (s *Service) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
+	// Проверяем, что команда существует
+	exists, err := s.repo.TeamExists(teamName)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("team not found")
+	}
+
+	return s.repo.AddUsersToTeam(teamName, users)
 }
