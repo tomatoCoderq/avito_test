@@ -1,0 +1,51 @@
+services:
+  api:
+    build:
+      context: .
+    container_name: api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    networks:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+  
+
+  postgres:
+    container_name: db
+    image: postgres:16.10-alpine3.22
+    volumes:
+      - ./docker/postgresql.conf:/etc/postgresql.conf:ro
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - 5432:5432
+    networks:
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 20G
+
+
+volumes:
+  db_data:
+networks:
+  postgres:
+    driver: bridge
