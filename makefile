@@ -1,26 +1,25 @@
 # Makefile to control project via docker-compose
 
 COMPOSE ?= docker-compose
-COMPOSE_FILE ?= docker-compose.yml
-SERVICE ?= web
+SERVICE ?= api
 
 .PHONY: up restart recreate clean lint-fix
 
 # Start services (detached)
 up:
-	$(COMPOSE) -f $(COMPOSE_FILE) up -d
+	$(COMPOSE) up -d
 
 # Restart all services  
 restart:
-	$(COMPOSE) -f $(COMPOSE_FILE) restart
+	$(COMPOSE) restart
 
 # Recreate service (SERVICE=... optional)
 recreate:
-	$(COMPOSE) -f $(COMPOSE_FILE) up -d --build --force-recreate $(SERVICE)
+	$(COMPOSE) up -d --build --force-recreate $(SERVICE)
 
 # Remove containers, images and volumes (destructive)
 clean:
-	$(COMPOSE) -f $(COMPOSE_FILE) down --rmi all --volumes --remove-orphans
+	$(COMPOSE) down --rmi all --volumes --remove-orphans
 
 # Run linter with auto-fix
 lint-fix:

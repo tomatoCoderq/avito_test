@@ -38,7 +38,6 @@ func (s *Service) TeamCreate(team *models.Team) (*models.Team, error) {
 		return nil, errors.New("team already exists")
 	}
 
-
 	if err := s.repo.CreateOrUpdateUsers(team.Users); err != nil {
 		return nil, err
 	}
@@ -52,7 +51,6 @@ func (s *Service) TeamGetByName(name string) (*models.Team, error) {
 }
 
 func (s *Service) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
-	
 	exists, err := s.repo.TeamExists(teamName)
 	if err != nil {
 		return nil, err
@@ -177,7 +175,6 @@ func (s *Service) prepareReassignments(prs []models.PR, deactivatedUserIDs []str
 						ToReviewer:   newReviewer.ID,
 					})
 				}
-
 			}
 		}
 	}

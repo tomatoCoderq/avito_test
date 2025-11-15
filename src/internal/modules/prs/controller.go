@@ -46,7 +46,6 @@ func (c *Controller) Create(ctx *gin.Context) {
 
 	pr, err := c.service.CreatePR(req.PullRequestID, req.PullRequestName, req.AuthorID)
 	if err != nil {
-		
 		if errors.Is(err, gorm.ErrRecordNotFound) || strings.Contains(err.Error(), "author has no team") {
 			ctx.JSON(404, gin.H{
 				"error": gin.H{
@@ -56,11 +55,11 @@ func (c *Controller) Create(ctx *gin.Context) {
 			})
 			return
 		}
-		
-		if strings.Contains(err.Error(), "duplicate") || 
-		   strings.Contains(err.Error(), "already exists") ||
-		   strings.Contains(err.Error(), "UNIQUE constraint failed") ||
-		   strings.Contains(err.Error(), "violates unique constraint") {
+
+		if strings.Contains(err.Error(), "duplicate") ||
+			strings.Contains(err.Error(), "already exists") ||
+			strings.Contains(err.Error(), "UNIQUE constraint failed") ||
+			strings.Contains(err.Error(), "violates unique constraint") {
 			ctx.JSON(409, gin.H{
 				"error": gin.H{
 					"code":    "PR_EXISTS",
@@ -69,7 +68,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 			})
 			return
 		}
-		
+
 		ctx.JSON(500, gin.H{
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
@@ -79,7 +78,6 @@ func (c *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)
@@ -87,11 +85,11 @@ func (c *Controller) Create(ctx *gin.Context) {
 
 	ctx.JSON(201, gin.H{
 		"pr": gin.H{
-			"pull_request_id":     pr.ID,
-			"pull_request_name":   pr.Name,
-			"author_id":           pr.AuthorID,
-			"status":              pr.Status,
-			"assigned_reviewers":  reviewerIDs,
+			"pull_request_id":    pr.ID,
+			"pull_request_name":  pr.Name,
+			"author_id":          pr.AuthorID,
+			"status":             pr.Status,
+			"assigned_reviewers": reviewerIDs,
 		},
 	})
 }
@@ -140,11 +138,11 @@ func (c *Controller) Merge(ctx *gin.Context) {
 
 	ctx.JSON(200, gin.H{
 		"pr": gin.H{
-			"pull_request_id":     pr.ID,
-			"pull_request_name":   pr.Name,
-			"author_id":           pr.AuthorID,
-			"status":              pr.Status,
-			"assigned_reviewers":  reviewerIDs,
+			"pull_request_id":    pr.ID,
+			"pull_request_name":  pr.Name,
+			"author_id":          pr.AuthorID,
+			"status":             pr.Status,
+			"assigned_reviewers": reviewerIDs,
 		},
 	})
 }
@@ -177,7 +175,7 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 			})
 			return
 		}
-		
+
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "PR_MERGED") {
 			ctx.JSON(409, gin.H{
@@ -216,7 +214,6 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 		return
 	}
 
-	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)
@@ -224,11 +221,11 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 
 	ctx.JSON(200, gin.H{
 		"pr": gin.H{
-			"pull_request_id":     pr.ID,
-			"pull_request_name":   pr.Name,
-			"author_id":           pr.AuthorID,
-			"status":              pr.Status,
-			"assigned_reviewers":  reviewerIDs,
+			"pull_request_id":    pr.ID,
+			"pull_request_name":  pr.Name,
+			"author_id":          pr.AuthorID,
+			"status":             pr.Status,
+			"assigned_reviewers": reviewerIDs,
 		},
 		"replaced_by": replacedBy,
 	})
@@ -267,7 +264,6 @@ func (c *Controller) GetByID(ctx *gin.Context) {
 		return
 	}
 
-	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)

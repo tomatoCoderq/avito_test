@@ -1,6 +1,8 @@
 package stats
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -35,7 +37,7 @@ func (c *Controller) GetUserStats(ctx *gin.Context) {
 	}
 
 	stats, err := c.service.GetUserStats(userID)
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(404, gin.H{
 			"error": gin.H{
 				"code":    "NOT_FOUND",
@@ -87,13 +89,13 @@ func (c *Controller) GetOverview(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, gin.H{
-		"total_users":                stats.TotalUsers,
-		"active_users":               stats.ActiveUsers,
-		"total_teams":                stats.TotalTeams,
-		"total_prs":                  stats.TotalPRs,
-		"open_prs":                   stats.OpenPRs,
-		"merged_prs":                 stats.MergedPRs,
-		"top_reviewers":              stats.TopReviewers,
+		"total_users":   stats.TotalUsers,
+		"active_users":  stats.ActiveUsers,
+		"total_teams":   stats.TotalTeams,
+		"total_prs":     stats.TotalPRs,
+		"open_prs":      stats.OpenPRs,
+		"merged_prs":    stats.MergedPRs,
+		"top_reviewers": stats.TopReviewers,
 	})
 }
 
@@ -111,7 +113,7 @@ func (c *Controller) GetTeamStats(ctx *gin.Context) {
 	}
 
 	stats, err := c.service.GetTeamStats(teamName)
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(404, gin.H{
 			"error": gin.H{
 				"code":    "NOT_FOUND",

@@ -37,11 +37,11 @@ func (r *Repo) TeamCreate(team *models.Team) (*models.Team, error) {
 	if err := r.db.Create(team).Error; err != nil {
 		return nil, err
 	}
-	
+
 	if err := r.db.Preload("Users").First(team, "id = ?", team.ID).Error; err != nil {
 		return nil, err
 	}
-	
+
 	return team, nil
 }
 
@@ -55,22 +55,18 @@ func (r *Repo) TeamGetByName(name string) (*models.Team, error) {
 }
 
 func (r *Repo) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
-	
 	var team models.Team
 	if err := r.db.Where("name = ?", teamName).First(&team).Error; err != nil {
 		return nil, err
 	}
 
-	
 	if err := r.CreateOrUpdateUsers(users); err != nil {
 		return nil, err
 	}
 
-	
 	if err := r.db.Model(&team).Association("Users").Append(users); err != nil {
 		return nil, err
 	}
-
 
 	if err := r.db.Preload("Users").First(&team, "id = ?", team.ID).Error; err != nil {
 		return nil, err
@@ -86,7 +82,6 @@ func (r *Repo) DeactivateUsersInTeam(teamName string, userIDs []string) error {
 		return err
 	}
 
-
 	var validUserIDs []string
 	err := r.db.Table("team_users").
 		Select("user_id").
@@ -101,7 +96,6 @@ func (r *Repo) DeactivateUsersInTeam(teamName string, userIDs []string) error {
 		return nil
 	}
 
-	
 	result := r.db.Model(&models.User{}).
 		Where("id IN ?", validUserIDs).
 		Update("is_active", false)
@@ -116,7 +110,7 @@ func (r *Repo) DeactivateUsersInTeam(teamName string, userIDs []string) error {
 // GetOpenPRsForReviewers получает все открытые PR для указанных ревьюверов
 func (r *Repo) GetOpenPRsForReviewers(userIDs []string) ([]models.PR, error) {
 	var prs []models.PR
-	
+
 	err := r.db.
 		Joins("JOIN pr_reviewers ON pr_reviewers.pr_id = prs.id").
 		Where("pr_reviewers.user_id IN ? AND prs.status = 'OPEN'", userIDs).
@@ -159,7 +153,6 @@ func (r *Repo) BatchReassignReviewers(reassignments []models.ReassignmentData) e
 
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		for _, reassignment := range reassignments {
-
 			if err := tx.Exec(
 				"DELETE FROM pr_reviewers WHERE pr_id = ? AND user_id = ?",
 				reassignment.PRID, reassignment.OldReviewerID,
@@ -167,7 +160,6 @@ func (r *Repo) BatchReassignReviewers(reassignments []models.ReassignmentData) e
 				return err
 			}
 
-			
 			if err := tx.Exec(
 				"INSERT INTO pr_reviewers (pr_id, user_id) VALUES (?, ?)",
 				reassignment.PRID, reassignment.NewReviewerID,

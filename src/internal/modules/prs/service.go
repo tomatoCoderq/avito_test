@@ -31,18 +31,15 @@ func (s *Service) GetPRByID(prID string) (*models.PR, error) {
 }
 
 func (s *Service) CreatePR(prID, prName, authorID string) (*models.PR, error) {
-	
 	author, err := s.repo.GetUserByID(authorID)
 	if err != nil {
 		return nil, err
 	}
 
-	
 	if len(author.Teams) == 0 {
 		return nil, errors.New("author has no team")
 	}
 
-	
 	teamMembers, err := s.repo.GetActiveTeamMembers(author.Teams[0].ID, author.ID)
 	if err != nil {
 		return nil, err
@@ -67,17 +64,14 @@ func (s *Service) MergePR(prID string) (*models.PR, error) {
 }
 
 func (s *Service) ReassignReviewer(prID, oldUserID string) (*models.PR, string, error) {
-
 	pr, err := s.repo.GetPRByID(prID)
 	if err != nil {
 		return nil, "", err
 	}
 
-
 	if pr.Status == "MERGED" {
 		return nil, "", errors.New("PR_MERGED: cannot reassign on merged PR")
 	}
-
 
 	oldUser, err := s.repo.GetUserByID(oldUserID)
 	if err != nil {
@@ -138,7 +132,6 @@ func (s *Service) ReassignReviewer(prID, oldUserID string) (*models.PR, string, 
 	return updatedPR, newReviewer.ID, nil
 }
 
-
 func (s *Service) selectReviewers(candidates []models.User, maxCount int) []models.User {
 	if len(candidates) == 0 {
 		return []models.User{}
@@ -149,10 +142,9 @@ func (s *Service) selectReviewers(candidates []models.User, maxCount int) []mode
 		count = len(candidates)
 	}
 
-
 	shuffled := make([]models.User, len(candidates))
 	copy(shuffled, candidates)
-	
+
 	rand.Shuffle(len(shuffled), func(i, j int) {
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 	})
@@ -160,4 +152,3 @@ func (s *Service) selectReviewers(candidates []models.User, maxCount int) []mode
 	// Возвращаем до двух случайных ревьюверов
 	return shuffled[:count]
 }
-
