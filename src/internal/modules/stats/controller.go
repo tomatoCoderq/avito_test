@@ -93,7 +93,6 @@ func (c *Controller) GetOverview(ctx *gin.Context) {
 		"total_prs":                  stats.TotalPRs,
 		"open_prs":                   stats.OpenPRs,
 		"merged_prs":                 stats.MergedPRs,
-		"average_reviewers_per_pr":   stats.AvgReviewers,
 		"top_reviewers":              stats.TopReviewers,
 	})
 }

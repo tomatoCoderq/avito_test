@@ -22,7 +22,7 @@ func (r *Repo) CreatePR(pr *models.PR) (*models.PR, error) {
 		return nil, err
 	}
 	
-	// Загружаем связанные данные
+	
 	if err := r.db.Preload("Author").Preload("Reviewers").First(pr, "id = ?", pr.ID).Error; err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (r *Repo) MergePR(prID string) (*models.PR, error) {
 		return nil, err
 	}
 
-	// Загружаем связанные данные
+	
 	if err := r.db.Preload("Author").Preload("Reviewers").First(&pr, "id = ?", prID).Error; err != nil {
 		return nil, err
 	}
@@ -93,7 +93,6 @@ func (r *Repo) ReassignReviewer(prID string, oldUserID string, newUserID string)
 		return nil, err
 	}
 
-	// Загружаем обновленные данные
 	if err := r.db.Preload("Author").Preload("Reviewers").First(&pr, "id = ?", prID).Error; err != nil {
 		return nil, err
 	}
@@ -113,8 +112,6 @@ func (r *Repo) GetUserByID(userID string) (*models.User, error) {
 func (r *Repo) GetActiveTeamMembers(teamID string, excludeUserID string) ([]models.User, error) {
 	var users []models.User
 	
-	// Получаем активных пользователей из команды, исключая указанного пользователя (автора PR)
-	// Условия: team_id = teamID AND is_active = true AND user_id != excludeUserID
 	if err := r.db.
 		Joins("JOIN team_users ON team_users.user_id = users.id").
 		Where("team_users.team_id = ? AND users.is_active = ? AND users.id != ?", teamID, true, excludeUserID).

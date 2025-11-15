@@ -60,7 +60,6 @@ func (c *Controller) SetIsActive(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ согласно OpenAPI спецификации
 	teamName := ""
 	if len(user.Teams) > 0 {
 		teamName = user.Teams[0].Name
@@ -76,7 +75,7 @@ func (c *Controller) SetIsActive(ctx *gin.Context) {
 	})
 }
 
-// GetReview получает список PR'ов где пользователь назначен ревьювером
+// GetReview получает список PR где пользователь назначен ревьювером
 func (c *Controller) GetReview(ctx *gin.Context) {
 	userID := ctx.Query("user_id")
 	if userID == "" {
@@ -100,7 +99,6 @@ func (c *Controller) GetReview(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ согласно OpenAPI спецификации
 	pullRequests := make([]gin.H, 0, len(prs))
 	for _, pr := range prs {
 		pullRequests = append(pullRequests, gin.H{

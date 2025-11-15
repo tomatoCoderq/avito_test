@@ -31,19 +31,18 @@ func (s *Service) GetPRByID(prID string) (*models.PR, error) {
 }
 
 func (s *Service) CreatePR(prID, prName, authorID string) (*models.PR, error) {
-	// Получаем автора
+	
 	author, err := s.repo.GetUserByID(authorID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Проверяем, что автор состоит в команде
+	
 	if len(author.Teams) == 0 {
 		return nil, errors.New("author has no team")
 	}
 
-	// Получаем активных членов команды (исключая автора)
-	// Фильтр: is_active = true AND user_id != author_id
+	
 	teamMembers, err := s.repo.GetActiveTeamMembers(author.Teams[0].ID, author.ID)
 	if err != nil {
 		return nil, err
@@ -52,7 +51,6 @@ func (s *Service) CreatePR(prID, prName, authorID string) (*models.PR, error) {
 	// Выбираем до 2 ревьюверов случайным образом из активных членов команды
 	reviewers := s.selectReviewers(teamMembers, 2)
 
-	// Создаем PR
 	pr := &models.PR{
 		ID:        prID,
 		Name:      prName,
@@ -69,18 +67,18 @@ func (s *Service) MergePR(prID string) (*models.PR, error) {
 }
 
 func (s *Service) ReassignReviewer(prID, oldUserID string) (*models.PR, string, error) {
-	// Получаем PR
+
 	pr, err := s.repo.GetPRByID(prID)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Проверяем, что PR не в статусе MERGED
+
 	if pr.Status == "MERGED" {
 		return nil, "", errors.New("PR_MERGED: cannot reassign on merged PR")
 	}
 
-	// Проверяем, что старый пользователь назначен ревьювером
+
 	oldUser, err := s.repo.GetUserByID(oldUserID)
 	if err != nil {
 		return nil, "", err
@@ -140,8 +138,7 @@ func (s *Service) ReassignReviewer(prID, oldUserID string) (*models.PR, string, 
 	return updatedPR, newReviewer.ID, nil
 }
 
-// selectReviewers выбирает до maxCount случайных ревьюверов из списка кандидатов
-// Использует rand.Shuffle для случайного перемешивания массива
+
 func (s *Service) selectReviewers(candidates []models.User, maxCount int) []models.User {
 	if len(candidates) == 0 {
 		return []models.User{}
@@ -152,7 +149,7 @@ func (s *Service) selectReviewers(candidates []models.User, maxCount int) []mode
 		count = len(candidates)
 	}
 
-	// Перемешиваем массив кандидатов случайным образом
+
 	shuffled := make([]models.User, len(candidates))
 	copy(shuffled, candidates)
 	
@@ -160,7 +157,7 @@ func (s *Service) selectReviewers(candidates []models.User, maxCount int) []mode
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 	})
 
-	// Возвращаем первые count элементов (максимум 2)
+	// Возвращаем до двух случайных ревьюверов
 	return shuffled[:count]
 }
 

@@ -30,7 +30,6 @@ func RegisterService(repo RepositoryMethods) *Service {
 }
 
 func (s *Service) TeamCreate(team *models.Team) (*models.Team, error) {
-	// Проверяем, существует ли команда
 	exists, err := s.repo.TeamExists(team.Name)
 	if err != nil {
 		return nil, err
@@ -39,7 +38,7 @@ func (s *Service) TeamCreate(team *models.Team) (*models.Team, error) {
 		return nil, errors.New("team already exists")
 	}
 
-	// Создаем или обновляем пользователей
+
 	if err := s.repo.CreateOrUpdateUsers(team.Users); err != nil {
 		return nil, err
 	}
@@ -53,7 +52,7 @@ func (s *Service) TeamGetByName(name string) (*models.Team, error) {
 }
 
 func (s *Service) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
-	// Проверяем, что команда существует
+	
 	exists, err := s.repo.TeamExists(teamName)
 	if err != nil {
 		return nil, err
@@ -73,20 +72,17 @@ func (s *Service) DeactivateTeamUsersWithPRReassignment(teamName string, userIDs
 		Errors:           []string{},
 	}
 
-	// Валидируем, что команда существует
 	if exists, err := s.repo.TeamExists(teamName); err != nil {
 		return nil, err
 	} else if !exists {
 		return nil, errors.New("team not found")
 	}
 
-	// Проверяем, что все пользователи состоят в команде
 	validUserIDs, err := s.repo.ValidateUsersInTeam(teamName, userIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	// Добавляем ошибки для пользователей, не состоящих в команде
 	validUserMap := make(map[string]bool)
 	for _, id := range validUserIDs {
 		validUserMap[id] = true
@@ -101,34 +97,28 @@ func (s *Service) DeactivateTeamUsersWithPRReassignment(teamName string, userIDs
 		return result, nil
 	}
 
-	// Получаем команду для дальнейших операций
 	team, err := s.repo.TeamGetByName(teamName)
 	if err != nil {
 		return nil, err
 	}
 
-	// Получаем открытые PR для деактивируемых пользователей
 	openPRs, err := s.repo.GetOpenPRsForReviewers(validUserIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	// Получаем активных участников команды для замещения (исключая деактивируемых и авторов PR)
 	excludeUserIDs := append(validUserIDs, s.extractAuthorIDs(openPRs)...)
 	activeCandidates, err := s.repo.GetActiveTeamMembersForReassignment(team.ID, excludeUserIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	// Подготавливаем переназначения
 	reassignments, reassignmentInfos := s.prepareReassignments(openPRs, validUserIDs, activeCandidates)
 
-	// Выполняем деактивацию пользователей
 	if err := s.repo.DeactivateUsersInTeam(teamName, validUserIDs); err != nil {
 		return nil, err
 	}
 
-	// Выполняем переназначения
 	if len(reassignments) > 0 {
 		if err := s.repo.BatchReassignReviewers(reassignments); err != nil {
 			return nil, err
@@ -187,8 +177,7 @@ func (s *Service) prepareReassignments(prs []models.PR, deactivatedUserIDs []str
 						ToReviewer:   newReviewer.ID,
 					})
 				}
-				// Если кандидатов нет, можно установить флаг need_more_reviewers
-				// но это требует дополнительного метода в репозитории
+
 			}
 		}
 	}

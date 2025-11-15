@@ -46,7 +46,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 
 	pr, err := c.service.CreatePR(req.PullRequestID, req.PullRequestName, req.AuthorID)
 	if err != nil {
-		// Автор или команда не найдены
+		
 		if errors.Is(err, gorm.ErrRecordNotFound) || strings.Contains(err.Error(), "author has no team") {
 			ctx.JSON(404, gin.H{
 				"error": gin.H{
@@ -56,7 +56,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 			})
 			return
 		}
-		// Дубликат PR
+		
 		if strings.Contains(err.Error(), "duplicate") || 
 		   strings.Contains(err.Error(), "already exists") ||
 		   strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -69,7 +69,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 			})
 			return
 		}
-		// Остальные ошибки
+		
 		ctx.JSON(500, gin.H{
 			"error": gin.H{
 				"code":    "INTERNAL_ERROR",
@@ -79,7 +79,7 @@ func (c *Controller) Create(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ
+	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)
@@ -216,7 +216,7 @@ func (c *Controller) Reassign(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ
+	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)
@@ -267,7 +267,7 @@ func (c *Controller) GetByID(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ
+	
 	reviewerIDs := make([]string, 0, len(pr.Reviewers))
 	for _, reviewer := range pr.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)

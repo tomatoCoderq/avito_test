@@ -26,7 +26,6 @@ func (r *Repo) SetIsActive(userID string, isActive bool) (*models.User, error) {
 		return nil, err
 	}
 
-	// Загружаем связанные команды для полного объекта
 	if err := r.db.Preload("Teams").First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
@@ -36,7 +35,8 @@ func (r *Repo) SetIsActive(userID string, isActive bool) (*models.User, error) {
 
 func (r *Repo) GetUserReviews(userID string) ([]models.PR, error) {
 	var prs []models.PR
-	// Ищем PR'ы где пользователь назначен ревьювером
+
+	
 	if err := r.db.
 		Joins("JOIN pr_reviewers ON pr_reviewers.pr_id = prs.id").
 		Where("pr_reviewers.user_id = ?", userID).

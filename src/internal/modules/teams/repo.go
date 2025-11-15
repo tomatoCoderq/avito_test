@@ -38,7 +38,6 @@ func (r *Repo) TeamCreate(team *models.Team) (*models.Team, error) {
 		return nil, err
 	}
 	
-	// Загружаем связанных пользователей
 	if err := r.db.Preload("Users").First(team, "id = ?", team.ID).Error; err != nil {
 		return nil, err
 	}
@@ -56,23 +55,23 @@ func (r *Repo) TeamGetByName(name string) (*models.Team, error) {
 }
 
 func (r *Repo) AddUsersToTeam(teamName string, users []models.User) (*models.Team, error) {
-	// Находим команду
+	
 	var team models.Team
 	if err := r.db.Where("name = ?", teamName).First(&team).Error; err != nil {
 		return nil, err
 	}
 
-	// Создаем или обновляем пользователей
+	
 	if err := r.CreateOrUpdateUsers(users); err != nil {
 		return nil, err
 	}
 
-	// Добавляем пользователей в команду (GORM автоматически избегает дубликатов)
+	
 	if err := r.db.Model(&team).Association("Users").Append(users); err != nil {
 		return nil, err
 	}
 
-	// Загружаем обновленную команду с пользователями
+
 	if err := r.db.Preload("Users").First(&team, "id = ?", team.ID).Error; err != nil {
 		return nil, err
 	}
@@ -82,13 +81,12 @@ func (r *Repo) AddUsersToTeam(teamName string, users []models.User) (*models.Tea
 
 // DeactivateUsersInTeam деактивирует пользователей в команде (batch операция)
 func (r *Repo) DeactivateUsersInTeam(teamName string, userIDs []string) error {
-	// Проверяем, что команда существует
 	var team models.Team
 	if err := r.db.Where("name = ?", teamName).First(&team).Error; err != nil {
 		return err
 	}
 
-	// Получаем ID пользователей, которые действительно состоят в команде
+
 	var validUserIDs []string
 	err := r.db.Table("team_users").
 		Select("user_id").
@@ -100,10 +98,10 @@ func (r *Repo) DeactivateUsersInTeam(teamName string, userIDs []string) error {
 	}
 
 	if len(validUserIDs) == 0 {
-		return nil // Нет пользователей для деактивации
+		return nil
 	}
 
-	// Деактивируем только валидных пользователей
+	
 	result := r.db.Model(&models.User{}).
 		Where("id IN ?", validUserIDs).
 		Update("is_active", false)
@@ -159,10 +157,9 @@ func (r *Repo) BatchReassignReviewers(reassignments []models.ReassignmentData) e
 		return nil
 	}
 
-	// Используем транзакцию для атомарности
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		for _, reassignment := range reassignments {
-			// Удаляем старого ревьювера
+
 			if err := tx.Exec(
 				"DELETE FROM pr_reviewers WHERE pr_id = ? AND user_id = ?",
 				reassignment.PRID, reassignment.OldReviewerID,
@@ -170,7 +167,7 @@ func (r *Repo) BatchReassignReviewers(reassignments []models.ReassignmentData) e
 				return err
 			}
 
-			// Добавляем нового ревьювера
+			
 			if err := tx.Exec(
 				"INSERT INTO pr_reviewers (pr_id, user_id) VALUES (?, ?)",
 				reassignment.PRID, reassignment.NewReviewerID,

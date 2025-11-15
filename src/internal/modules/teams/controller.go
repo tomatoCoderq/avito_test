@@ -61,7 +61,6 @@ func (c *Controller) TeamCreate(ctx *gin.Context) {
 
 	createdTeam, err := c.service.TeamCreate(team)
 	if err != nil {
-		// Проверяем на дубликат команды
 		if err.Error() == "team already exists" {
 			ctx.JSON(400, gin.H{
 				"error": gin.H{
@@ -80,7 +79,6 @@ func (c *Controller) TeamCreate(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ согласно OpenAPI
 	members := make([]gin.H, len(createdTeam.Users))
 	for i, user := range createdTeam.Users {
 		members[i] = gin.H{
@@ -130,7 +128,6 @@ func (c *Controller) TeamGetByName(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ согласно OpenAPI
 	members := make([]gin.H, len(team.Users))
 	for i, user := range team.Users {
 		members[i] = gin.H{
@@ -147,6 +144,7 @@ func (c *Controller) TeamGetByName(ctx *gin.Context) {
 }
 
 // AddUsers добавляет пользователей в существующую команду
+// Нет в основном API. Добавлено для удобства и тестирования.
 func (c *Controller) AddUsers(ctx *gin.Context) {
 	var req struct {
 		TeamName string `json:"team_name" binding:"required"`
@@ -167,7 +165,6 @@ func (c *Controller) AddUsers(ctx *gin.Context) {
 		return
 	}
 
-	// Создаем массив пользователей
 	users := make([]models.User, len(req.Members))
 	for i, member := range req.Members {
 		users[i] = models.User{
@@ -179,7 +176,6 @@ func (c *Controller) AddUsers(ctx *gin.Context) {
 
 	updatedTeam, err := c.service.AddUsersToTeam(req.TeamName, users)
 	if err != nil {
-		// Команда не найдена
 		if err.Error() == "team not found" || errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(404, gin.H{
 				"error": gin.H{
@@ -198,7 +194,6 @@ func (c *Controller) AddUsers(ctx *gin.Context) {
 		return
 	}
 
-	// Формируем ответ согласно OpenAPI
 	members := make([]gin.H, len(updatedTeam.Users))
 	for i, user := range updatedTeam.Users {
 		members[i] = gin.H{
@@ -232,7 +227,6 @@ func (c *Controller) DeactivateUsers(ctx *gin.Context) {
 		return
 	}
 
-	// Валидация входных данных
 	if len(req.UserIDs) == 0 {
 		ctx.JSON(400, gin.H{
 			"error": gin.H{
@@ -243,7 +237,7 @@ func (c *Controller) DeactivateUsers(ctx *gin.Context) {
 		return
 	}
 
-	// Выполняем операцию деактивации
+	
 	result, err := c.service.DeactivateTeamUsersWithPRReassignment(req.TeamName, req.UserIDs)
 	if err != nil {
 		// Обрабатываем различные типы ошибок

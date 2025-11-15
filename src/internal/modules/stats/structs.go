@@ -21,7 +21,6 @@ type OverviewStats struct {
 	TotalPRs      int          `json:"total_prs"`
 	OpenPRs       int          `json:"open_prs"`
 	MergedPRs     int          `json:"merged_prs"`
-	AvgReviewers  float64      `json:"average_reviewers_per_pr"`
 	TopReviewers  []TopReviewer `json:"top_reviewers"`
 }
 
