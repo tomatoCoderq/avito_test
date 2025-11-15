@@ -12,6 +12,11 @@ type RepositoryMethods interface {
 	TeamExists(name string) (bool, error)
 	CreateOrUpdateUsers(users []models.User) error
 	AddUsersToTeam(teamName string, users []models.User) (*models.Team, error)
+	DeactivateUsersInTeam(teamName string, userIDs []string) error
+	GetOpenPRsForReviewers(userIDs []string) ([]models.PR, error)
+	GetActiveTeamMembersForReassignment(teamID string, excludeUserIDs []string) ([]models.User, error)
+	BatchReassignReviewers(reassignments []models.ReassignmentData) error
+	ValidateUsersInTeam(teamName string, userIDs []string) ([]string, error)
 }
 
 type Service struct {
@@ -58,4 +63,135 @@ func (s *Service) AddUsersToTeam(teamName string, users []models.User) (*models.
 	}
 
 	return s.repo.AddUsersToTeam(teamName, users)
+}
+
+// DeactivateTeamUsersWithPRReassignment деактивирует пользователей команды и переназначает их PR
+func (s *Service) DeactivateTeamUsersWithPRReassignment(teamName string, userIDs []string) (*models.DeactivationResult, error) {
+	result := &models.DeactivationResult{
+		DeactivatedUsers: []string{},
+		ReassignedPRs:    []models.PRReassignmentInfo{},
+		Errors:           []string{},
+	}
+
+	// Валидируем, что команда существует
+	if exists, err := s.repo.TeamExists(teamName); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, errors.New("team not found")
+	}
+
+	// Проверяем, что все пользователи состоят в команде
+	validUserIDs, err := s.repo.ValidateUsersInTeam(teamName, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Добавляем ошибки для пользователей, не состоящих в команде
+	validUserMap := make(map[string]bool)
+	for _, id := range validUserIDs {
+		validUserMap[id] = true
+	}
+	for _, id := range userIDs {
+		if !validUserMap[id] {
+			result.Errors = append(result.Errors, "user "+id+" is not in team "+teamName)
+		}
+	}
+
+	if len(validUserIDs) == 0 {
+		return result, nil
+	}
+
+	// Получаем команду для дальнейших операций
+	team, err := s.repo.TeamGetByName(teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем открытые PR для деактивируемых пользователей
+	openPRs, err := s.repo.GetOpenPRsForReviewers(validUserIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем активных участников команды для замещения (исключая деактивируемых и авторов PR)
+	excludeUserIDs := append(validUserIDs, s.extractAuthorIDs(openPRs)...)
+	activeCandidates, err := s.repo.GetActiveTeamMembersForReassignment(team.ID, excludeUserIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Подготавливаем переназначения
+	reassignments, reassignmentInfos := s.prepareReassignments(openPRs, validUserIDs, activeCandidates)
+
+	// Выполняем деактивацию пользователей
+	if err := s.repo.DeactivateUsersInTeam(teamName, validUserIDs); err != nil {
+		return nil, err
+	}
+
+	// Выполняем переназначения
+	if len(reassignments) > 0 {
+		if err := s.repo.BatchReassignReviewers(reassignments); err != nil {
+			return nil, err
+		}
+	}
+
+	result.DeactivatedUsers = validUserIDs
+	result.ReassignedPRs = reassignmentInfos
+
+	return result, nil
+}
+
+// extractAuthorIDs извлекает ID авторов из списка PR
+func (s *Service) extractAuthorIDs(prs []models.PR) []string {
+	authorMap := make(map[string]bool)
+	for _, pr := range prs {
+		authorMap[pr.AuthorID] = true
+	}
+
+	authors := make([]string, 0, len(authorMap))
+	for authorID := range authorMap {
+		authors = append(authors, authorID)
+	}
+	return authors
+}
+
+// prepareReassignments подготавливает данные для батчевого переназначения
+func (s *Service) prepareReassignments(prs []models.PR, deactivatedUserIDs []string, candidates []models.User) ([]models.ReassignmentData, []models.PRReassignmentInfo) {
+	deactivatedMap := make(map[string]bool)
+	for _, userID := range deactivatedUserIDs {
+		deactivatedMap[userID] = true
+	}
+
+	reassignments := []models.ReassignmentData{}
+	reassignmentInfos := []models.PRReassignmentInfo{}
+	candidateIndex := 0
+
+	for _, pr := range prs {
+		for _, reviewer := range pr.Reviewers {
+			// Если ревьювер деактивирован, переназначаем
+			if deactivatedMap[reviewer.ID] {
+				if candidateIndex < len(candidates) {
+					// Равномерно распределяем между кандидатами
+					newReviewer := candidates[candidateIndex%len(candidates)]
+					candidateIndex++
+
+					reassignments = append(reassignments, models.ReassignmentData{
+						PRID:          pr.ID,
+						OldReviewerID: reviewer.ID,
+						NewReviewerID: newReviewer.ID,
+					})
+
+					reassignmentInfos = append(reassignmentInfos, models.PRReassignmentInfo{
+						PRID:         pr.ID,
+						FromReviewer: reviewer.ID,
+						ToReviewer:   newReviewer.ID,
+					})
+				}
+				// Если кандидатов нет, можно установить флаг need_more_reviewers
+				// но это требует дополнительного метода в репозитории
+			}
+		}
+	}
+
+	return reassignments, reassignmentInfos
 }

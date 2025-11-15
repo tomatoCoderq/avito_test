@@ -1,6 +1,7 @@
 Avito/
 .env
 openapi.json
-makefile
 .vscode/
 .DS_Store
+load_tests/
+docker/

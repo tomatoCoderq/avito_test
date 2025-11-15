@@ -1,18 +1,3 @@
-//	@title			Repeatro
-//	@version		1.0
-//	@description	Repeatro Swagger describes all endpoints.
-
-//	@host		localhost:8080
-//	@BasePath	/
-
-// @contact.name	khasan
-// @contact.email	xasanFN@mail.ru
-// @contact.url	https://t.me/tomatocoder
-
-//	@securityDefinitions.basic	BasicAuth
-
-// @externalDocs.description	OpenAPI
-// @externalDocs.url			https://swagger.io/resources/open-api/
 package app
 
 import (
@@ -26,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/tomatoCoderq/avito_task/src/internal/modules/prs"
+	"github.com/tomatoCoderq/avito_task/src/internal/modules/stats"
 	"github.com/tomatoCoderq/avito_task/src/internal/modules/teams"
 	"github.com/tomatoCoderq/avito_task/src/internal/modules/users"
 
@@ -66,6 +52,7 @@ func New(
 	router.Handle(http.MethodPost, "/team/add", teamsController.TeamCreate)
 	router.Handle(http.MethodGet, "/team/get", teamsController.TeamGetByName)
 	router.Handle(http.MethodPost, "/team/addUsers", teamsController.AddUsers)
+	router.Handle(http.MethodPost, "/team/deactivateUsers", teamsController.DeactivateUsers)
 
 	usersRepo := users.NewRepo(repo)
 	usersService := users.RegisterService(usersRepo)
@@ -82,6 +69,14 @@ func New(
 	router.Handle(http.MethodGet, "/pullRequest/get", prsController.GetByID)
 	router.Handle(http.MethodPost, "/pullRequest/merge", prsController.Merge)
 	router.Handle(http.MethodPost, "/pullRequest/reassign", prsController.Reassign)
+
+	statsRepo := stats.NewRepo(repo)
+	statsService := stats.RegisterService(statsRepo)
+	statsController := stats.RegisterController(statsService)
+
+	router.Handle(http.MethodGet, "/stats/users", statsController.GetUserStats)
+	router.Handle(http.MethodGet, "/stats/overview", statsController.GetOverview)
+	router.Handle(http.MethodGet, "/stats/teams", statsController.GetTeamStats)
 
 	httpServer := &http.Server{
 		Addr:    address,

@@ -12,6 +12,7 @@ type ServiceMethods interface {
 	TeamCreate(team *models.Team) (*models.Team, error)
 	TeamGetByName(name string) (*models.Team, error)
 	AddUsersToTeam(teamName string, users []models.User) (*models.Team, error)
+	DeactivateTeamUsersWithPRReassignment(teamName string, userIDs []string) (*models.DeactivationResult, error)
 }
 
 type Controller struct {
@@ -213,4 +214,67 @@ func (c *Controller) AddUsers(ctx *gin.Context) {
 			"members":   members,
 		},
 	})
+}
+
+func (c *Controller) DeactivateUsers(ctx *gin.Context) {
+	var req struct {
+		TeamName string   `json:"team_name" binding:"required"`
+		UserIDs  []string `json:"user_ids" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(400, gin.H{
+			"error": gin.H{
+				"code":    "INVALID_REQUEST",
+				"message": "Invalid request body",
+			},
+		})
+		return
+	}
+
+	// Валидация входных данных
+	if len(req.UserIDs) == 0 {
+		ctx.JSON(400, gin.H{
+			"error": gin.H{
+				"code":    "INVALID_REQUEST",
+				"message": "user_ids cannot be empty",
+			},
+		})
+		return
+	}
+
+	// Выполняем операцию деактивации
+	result, err := c.service.DeactivateTeamUsersWithPRReassignment(req.TeamName, req.UserIDs)
+	if err != nil {
+		// Обрабатываем различные типы ошибок
+		if err.Error() == "team not found" {
+			ctx.JSON(404, gin.H{
+				"error": gin.H{
+					"code":    "NOT_FOUND",
+					"message": "Team not found",
+				},
+			})
+			return
+		}
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(404, gin.H{
+				"error": gin.H{
+					"code":    "NOT_FOUND",
+					"message": "Team not found",
+				},
+			})
+			return
+		}
+
+		ctx.JSON(500, gin.H{
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to deactivate users",
+			},
+		})
+		return
+	}
+
+	ctx.JSON(200, result)
 }

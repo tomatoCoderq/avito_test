@@ -1,5 +1,6 @@
 package models
 
+// User содержит информацию о пользователе. Модель используется для миграции
 type User struct {
 	ID       string `gorm:"type:varchar(255);primaryKey"`
 	Name     string
