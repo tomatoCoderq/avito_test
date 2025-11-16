@@ -63,14 +63,8 @@ make clean
 # Перейти в директорию тестов
 cd load_tests
 
-# Проверить готовность
-make check-ready
-
-# Запустить стресс-тесты
-make stress-test
-
-# Очистить результаты
-make clean
+# Запустить тестирование (тестируется эндпоинт UsersDeactivate)
+k6 run stress_test.js
 ```
 
 ### Ручной запуск
@@ -83,15 +77,5 @@ docker-compose up -d
 
 # Запуск Go приложения локально
 go run src/api/main.go
-
-# Запуск тестов
-cd load_tests
-k6 run stress-test.js
 ```
 
-## Конфигурация
-
-Основные настройки в `docker-compose.yml`:
-- API server: `localhost:8080`
-- PostgreSQL: `localhost:5432`
-- Database: `avito_db`
