@@ -19,7 +19,7 @@ services:
     container_name: db
     image: postgres:16.10-alpine3.22
     volumes:
-      - ./docker/postgresql.conf:/etc/postgresql.conf:ro
+      - ./docker/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - db_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -31,6 +31,7 @@ services:
     networks:
       - postgres
     restart: unless-stopped
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -41,7 +42,7 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 20G
+          memory: 2G
 
 
 volumes:

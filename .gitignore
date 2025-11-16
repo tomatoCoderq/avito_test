@@ -3,5 +3,3 @@ Avito/
 openapi.json
 .vscode/
 .DS_Store
-load_tests/
-docker/
